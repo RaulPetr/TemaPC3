@@ -1,0 +1,4 @@
+test8.bmp
+./input/filters/filter6.txt
+./input/pooling/pooling1.txt
+./input/clustering/cluster1.txt
