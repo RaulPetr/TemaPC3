@@ -36,4 +36,11 @@ typedef struct
 	unsigned char r;
 } pixel;
 
+typedef struct 
+{
+    unsigned char b;
+    unsigned char g;
+    unsigned char r;
+}Zone_Color;
+
 #pragma pack()

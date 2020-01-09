@@ -83,17 +83,15 @@ int main()
 			fwrite(&img[i][j].r,sizeof(char),1,output);
 		}
 		
-		
-		{	if(padding==3)
-			{fwrite(&zero,sizeof(char),1,output);
-			fwrite(&zero,sizeof(char),1,output);
-			fwrite(&zero,sizeof(char),1,output);
-			}
-			if(padding==1)
-			{
-				fwrite(&zero,sizeof(char),1,output);
-			}
+		if(padding==3)
+		{fwrite(&zero,sizeof(char),1,output);
+		fwrite(&zero,sizeof(char),1,output);
+		fwrite(&zero,sizeof(char),1,output);
 		}
+		if(padding==1)
+		{
+			fwrite(&zero,sizeof(char),1,output);
+		}	
 	}
 	
 			
@@ -105,7 +103,6 @@ int main()
 	p=strtok(copie,".");
 	strcpy(bw,p);
 	strcat(bw,"_black_white.bmp");
-	printf("%s\n",bw );
 	FILE *output1=fopen(bw,"wb");
 	fwrite(&FH.fileMarker1,sizeof(char),1,output1);
 	fwrite(&FH.fileMarker2,sizeof(char),1,output1);
@@ -133,8 +130,6 @@ int main()
 		for(j=0;j<IH.width;j++)
 		{	
 			medie=(img[i][j].b+img[i][j].g+img[i][j].r)/3;
-			//printf("%d: %d %d %d\n",k,img[i][j].b, img[i][j].g, img[i][j].r );
-			//k+=3;
 			fwrite(&medie,sizeof(char),1,output1);
 			fwrite(&medie,sizeof(char),1,output1);
 			fwrite(&medie,sizeof(char),1,output1);
@@ -164,7 +159,6 @@ int main()
 
 	strcpy(nc,p);
 	strcat(nc,"_nocrop.bmp");
-	printf("%s\n",bw );
 	FILE *output2=fopen(nc,"wb");
 	if(IH.height>IH.width)
 		format=0;
@@ -209,9 +203,7 @@ int main()
 		after=(IH.width-IH.height)/2;
 		padding1=(4-(IH.width*3)%4)%4;
 	}
-	printf("%d %d %d\n",format, before, after);
 
-	
 	if(format)
 	{
 		for(i=0;i<before;i++)
@@ -331,17 +323,8 @@ int main()
 		for(j=0;j<n;j++)
 			fscanf(filter_in,"%d",&filter[i][j]);
 
-//rasturnare matrice
+	//rasturnare matrice
 	int aux;
-//mai intai liniile
-	/*for(i=0;i<n;i++)
-		for(j=0;j<n/2;j++)
-		{
-			aux=filter[i][j];
-			filter[i][j]=filter[i][n-j-1];
-			filter[i][n-j-1]=aux;
-		}*/
-//apoi coloanele
 	for(i=0;i<n/2;i++)
 		for(j=0;j<n;j++)
 		{
@@ -350,10 +333,6 @@ int main()
 			filter[i][j]=aux;
 		}
 
-	for(i=0;i<n;i++)
-		{for(j=0;j<n;j++)
-			printf("%d",filter[i][j]);
-		printf("\n");}
 	strcpy(cl,p);
 	strcat(cl,"_filter.bmp");
 	FILE *output3=fopen(cl,"wb");
@@ -431,6 +410,224 @@ int main()
 			fwrite(&zero,sizeof(char),1,output3);
 		}
 	}	
+	fclose(output3);
+//////POOLING///////////////////////////////////////////////////////////////
+	char pl[100],type;
+	int size;
+	strcpy(pl,p);
+	strcat(pl,"_pooling.bmp");
+	FILE *output4=fopen(pl,"wb");
+	fgets(filt,sizeof(filt),input);
+	strcpy(filt+strlen(filt)-1,"\0");
+	FILE *pooling=fopen(filt,"rt");
+	fscanf(pooling,"%c %d",&type,&size);
+
+	fwrite(&FH.fileMarker1,sizeof(char),1,output4);
+	fwrite(&FH.fileMarker2,sizeof(char),1,output4);
+	fwrite(&FH.bfSize,sizeof(int),1,output4);
+	fwrite(&FH.unused1,sizeof(short),1,output4);
+	fwrite(&FH.unused2,sizeof(short),1,output4);
+	fwrite(&FH.imageDataOffset,sizeof(int),1,output4);
+
+	fwrite(&IH.biSize,sizeof(int),1,output4);
+	fwrite(&IH.width,sizeof(int),1,output4);
+	fwrite(&IH.height,sizeof(int),1,output4);
+	fwrite(&IH.planes,sizeof(short),1,output4);
+	fwrite(&IH.bitPix,sizeof(short),1,output4);
+	fwrite(&IH.biCompression,sizeof(int),1,output4);
+	fwrite(&IH.biSizeImage,sizeof(int),1,output4);
+	fwrite(&IH.biXPelsPerMeter,sizeof(int),1,output4);
+	fwrite(&IH.biYPelsPerMeter,sizeof(int),1,output4);
+	fwrite(&IH.biClrUsed,sizeof(int),1,output4);
+	fwrite(&IH.biClrImportant,sizeof(int),1,output4);
+
+	int minb, ming, minr, maxb, maxg, maxr;
+
+	for(i=0;i<IH.height;i++)
+	{
+		for(j=0;j<IH.width;j++)
+		{	
+			minb=ming=minr=0xff;
+			maxb=maxg=maxr=0x00;
+			for(k=0;k<size;k++)
+				for(l=0;l<size;l++)
+				{	
+					
+					if((i+k-size/2)<0||(i+k-size/2)>=IH.height)
+						b1=g1=r1=0;
+					else
+					if((j+l-size/2)<0||(j+l-size/2)>=IH.width)
+						b1=g1=r1=0;
+					else
+					{
+						b1=img[i+k-size/2][j+l-size/2].b;
+						g1=img[i+k-size/2][j+l-size/2].g;
+						r1=img[i+k-size/2][j+l-size/2].r;
+					}
+
+					if(b1>maxb)
+						maxb=b1;
+					if(b1<minb)
+						minb=b1;
+					if(g1>maxg)
+						maxg=g1;
+					if(g1<ming)
+						ming=g1;
+					if(r1>maxr)
+						maxr=r1;
+					if(r1<minr)
+						minr=r1;
+				}
+			if(type=='M')
+			{
+				fwrite(&maxb,sizeof(char),1,output4);
+				fwrite(&maxg,sizeof(char),1,output4);
+				fwrite(&maxr,sizeof(char),1,output4);
+			}
+			else
+			{
+				fwrite(&minb,sizeof(char),1,output4);
+				fwrite(&ming,sizeof(char),1,output4);
+				fwrite(&minr,sizeof(char),1,output4);
+			}
+		}
+		
+		if(padding==3)
+		{
+			fwrite(&zero,sizeof(char),1,output4);
+			fwrite(&zero,sizeof(char),1,output4);
+			fwrite(&zero,sizeof(char),1,output4);
+		}
+		if(padding==1)
+		{
+			fwrite(&zero,sizeof(char),1,output4);
+		}
+	}
+	fclose(output4);
+/////////////CLUSTERING/////////////////////////////////////////////////////////
+
+	int **zone,zonenr=0; //matricea ce contine zonele pixelilor si contorul
+	int zones=256; //se aloca spatiu pentru cate 256 de culori de zona
+	Zone_Color *zc; //vector de pixeli cu culoarea fiecarei zone
+	int thr; //thr=threshhold
+	int ok,count;
+	zone=malloc(IH.height*sizeof(int *));			//alocare memorie
+	for(i=0;i<IH.height;i++)
+		zone[i]=malloc(IH.width*sizeof(zone));
+	for(i=0;i<IH.height;i++)
+		for(j=0;j<IH.width;j++)
+			zone[i][j]=0;
+	zc=malloc(zones*sizeof(Zone_Color));
+
+	char clus[100];
+	strcpy(clus,p);
+	strcat(clus,"_clustered.bmp");
+	FILE *output5=fopen(clus,"wb");
+	fgets(filt,sizeof(filt),input);
+	strcpy(filt+strlen(filt)-1,"\0");
+	FILE *clustering=fopen(filt,"rt");
+	fscanf(clustering,"%d",&thr);
+
+	for(i=IH.height-1;i>=0;i--)
+		for(j=0;j<IH.width;j++)
+		{
+			if(zone[i][j]==0)
+			{	
+				zonenr++;	
+				b=g=r=0;
+				count=1;
+				zone[i][j]=zonenr;
+
+				b1=img[i][j].b;
+				g1=img[i][j].g;
+				r1=img[i][j].r;
+
+				b=b+img[i][j].b;
+				g=g+img[i][j].g;
+				r=r+img[i][j].r;
+
+				ok=0;
+				for(k=i;k>=0;k--)
+					for(l=0;l<IH.width;l++)
+					{
+						if(ok)
+						{
+							l=j+1;
+							ok=0;
+						}
+						if(k>i||l<IH.width) //in caz ca pixelul gasit liber e la
+						// capat de rand, nu se iese din spatiul de memorie
+						{
+							if(( abs(b1-img[k][l].b) + abs(g1-img[k][l].g)
+								+abs(r1-img[k][l].r) ) <= thr)
+								if(zone[k][l]==0)
+								{
+									zone[k][l]=zonenr;
+									b=b+img[k][l].b;
+									g=g+img[k][l].g;
+									r=r+img[k][l].r;
+									count++;
+								}
+						}
+					}
+
+				b=b/count;
+				g=g/count;
+				r=r/count;
+
+				if(zonenr+3>zones)	//realocare pt. vectorul pixelilor zonelor
+				{	
+					zones*=2;
+					zc=realloc(zc,zones*sizeof(Zone_Color));
+				}
+
+				zc[zonenr].b=b;
+				zc[zonenr].g=g;
+				zc[zonenr].r=r;
+				}
+
+
+			}
+
+	fwrite(&FH.fileMarker1,sizeof(char),1,output5);
+	fwrite(&FH.fileMarker2,sizeof(char),1,output5);
+	fwrite(&FH.bfSize,sizeof(int),1,output5);
+	fwrite(&FH.unused1,sizeof(short),1,output5);
+	fwrite(&FH.unused2,sizeof(short),1,output5);
+	fwrite(&FH.imageDataOffset,sizeof(int),1,output5);
+
+	fwrite(&IH.biSize,sizeof(int),1,output5);
+	fwrite(&IH.width,sizeof(int),1,output5);
+	fwrite(&IH.height,sizeof(int),1,output5);
+	fwrite(&IH.planes,sizeof(short),1,output5);
+	fwrite(&IH.bitPix,sizeof(short),1,output5);
+	fwrite(&IH.biCompression,sizeof(int),1,output5);
+	fwrite(&IH.biSizeImage,sizeof(int),1,output5);
+	fwrite(&IH.biXPelsPerMeter,sizeof(int),1,output5);
+	fwrite(&IH.biYPelsPerMeter,sizeof(int),1,output5);
+	fwrite(&IH.biClrUsed,sizeof(int),1,output5);
+	fwrite(&IH.biClrImportant,sizeof(int),1,output5);
+
+	for(i=0;i<IH.height;i++)
+	{
+		for(j=0;j<IH.width;j++)
+		{	
+			fwrite(&zc[zone[i][j]].b,sizeof(char),1,output5);
+			fwrite(&zc[zone[i][j]].g,sizeof(char),1,output5);
+			fwrite(&zc[zone[i][j]].r,sizeof(char),1,output5);
+		}
+		
+		if(padding==3)
+		{fwrite(&zero,sizeof(char),1,output5);
+		fwrite(&zero,sizeof(char),1,output5);
+		fwrite(&zero,sizeof(char),1,output5);
+		}
+		if(padding==1)
+		{
+			fwrite(&zero,sizeof(char),1,output5);
+		}	
+	}
+	fclose(output5);	
 
 
 
@@ -440,4 +637,7 @@ int main()
 	for(i=0;i<IH.height;i++)			//eliberare memorie
 		free(img[i]);
 	free(img);
+	for(i=0;i<IH.height;i++)		
+		free(zone[i]);
+	free(zone);
 	return 0;}
