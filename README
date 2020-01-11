@@ -1,0 +1,46 @@
+Tema 3 - Image Processing
+Link: https://ocw.cs.pub.ro/courses/programare/teme_2019/tema3_2019_cbd
+
+Taskuri:
+1.Black&White
+2.NoCrop
+3.Convolutional Filters
+4.Image Pooling
+5.Clustering
+
+Subprograme
+1)void header_write (FILE *output,bmp_fileheader FH, bmp_infoheader IH)
+	Scrie File Header-ul si Image Header-ul unei imagini la un output dat.
+2)void write_pixel(FILE *output,unsigned char b,unsigned char g,unsigned char r)
+	Scrie cate un pixel, culoare cu culoare la un output dat.
+
+Scurta explicatie a algoritmilor folositi
+	
+	La citirea fisierului input.txt se foloseste fgets si se construieste un 
+string care se pune ca parametru la fopen. 
+	Paddingul se calculeaza cu formula padding=(4-(WIDTH*3)%4)%4.
+
+Task 2:
+	Variabila format este 0 daca imaginea este de tip portret si 1 daca e
+landscape.
+	In functie de format se calculeaza variabilele before si after, care 
+reprezinta numarul de linii/coloane ce trebuie adaugate inainte/dupa imagine.
+	Deoarece daca e format portrait se schimba latimea imaginii, se calculeaza 
+un nou padding.
+	
+Task 3:
+	Se citeste marimea filtrului si se aloca dinamic matricea.
+	Se comuta valorile de pe coloana, pentru a se putea aplica pe formatul in
+care este scrisa imaginea in memorie.
+	Se calculeaza conform formulei de pe pagina temei valoarea fiecarui pixel,
+apoi se scrie fisierul corespunzator.
+
+Task 4:
+	Se foloseste formula de pe pagina temei pentru a afla culorile fiecarui
+pixel.
+
+Task 5:
+	Nu functioneaza, algoritmul nu e bun mai mult ca sigur.
+	
+
+

@@ -3,58 +3,11 @@
 #include <string.h>
 #include "bmp_header.h"
 
-int main()
-{	int i,j,a;
-	unsigned char zero=0x00, full=0xff;
-	bmp_fileheader FH;
-	bmp_infoheader IH;
-	pixel **img;
-	FILE *input=fopen("input.txt","rt");
-	char line[100], copie[100];
-	fgets(line,sizeof(line),input);			//citeste numele imaginii					
-	strcpy(copie,line);						//adauga ./input/images/
-	strcpy(line,"./input/images/");
-	strcat(line,copie);
-	strcpy(line+strlen(line)-1,"\0");		//sterge un \n de la final
-	FILE *imagine=fopen(line,"rb");			
-	fread(&FH.fileMarker1,sizeof(char),1,imagine);	//citire fileheader
-	fread(&FH.fileMarker2,sizeof(char),1,imagine);
-	fread(&FH.bfSize,sizeof(int),1,imagine);
-	fread(&FH.unused1,sizeof(short),1,imagine);
-	fread(&FH.unused2,sizeof(short),1,imagine);
-	fread(&FH.imageDataOffset,sizeof(int),1,imagine);
+#define strlength 100
 
-	fread(&IH.biSize,sizeof(int),1,imagine);		//citire infoheader
-	fread(&IH.width,sizeof(int),1,imagine);
-	fread(&IH.height,sizeof(int),1,imagine);
-	fread(&IH.planes,sizeof(short),1,imagine);
-	fread(&IH.bitPix,sizeof(short),1,imagine);
-	fread(&IH.biCompression,sizeof(int),1,imagine);
-	fread(&IH.biSizeImage,sizeof(int),1,imagine);
-	fread(&IH.biXPelsPerMeter,sizeof(int),1,imagine);
-	fread(&IH.biYPelsPerMeter,sizeof(int),1,imagine);
-	fread(&IH.biClrUsed,sizeof(int),1,imagine);
-	fread(&IH.biClrImportant,sizeof(int),1,imagine);
 
-	img=malloc(IH.height*sizeof(pixel *));			//alocare memorie
-	for(i=0;i<IH.height;i++)
-		img[i]=malloc(IH.width*sizeof(pixel)+4);
-	int padding;									//calculare padding
-	padding=(4-(IH.width*3)%4)%4;
-
-	for(i=0;i<IH.height;i++)
-		{
-		for(j=0;j<IH.width;j++)
-		{
-			fread(&img[i][j].b,sizeof(char),1,imagine);		//citire pixeli
-			fread(&img[i][j].g,sizeof(char),1,imagine);
-			fread(&img[i][j].r,sizeof(char),1,imagine);
-		}
-		if(i!=IH.height-1)
-			fseek(imagine,padding,SEEK_CUR);				//omitere padding
-		}
-//////////////////////////////////////////////////////////////////////////////
-	FILE *output=fopen("imagine.bmp","wb");
+void header_write (FILE *output,bmp_fileheader FH, bmp_infoheader IH)
+{
 	fwrite(&FH.fileMarker1,sizeof(char),1,output);
 	fwrite(&FH.fileMarker2,sizeof(char),1,output);
 	fwrite(&FH.bfSize,sizeof(int),1,output);
@@ -73,93 +26,103 @@ int main()
 	fwrite(&IH.biYPelsPerMeter,sizeof(int),1,output);
 	fwrite(&IH.biClrUsed,sizeof(int),1,output);
 	fwrite(&IH.biClrImportant,sizeof(int),1,output);
+}
+
+void write_pixel (FILE *output,unsigned char b,unsigned char g,unsigned char r)
+{
+	fwrite(&b,sizeof(char),1,output);			//Write pixels.
+	fwrite(&g,sizeof(char),1,output);
+	fwrite(&r,sizeof(char),1,output);
+}
+
+int main()
+{	int i,j,a,k,l;
+	unsigned char zero=0x00, full=0xff;
+	bmp_fileheader FH;
+	bmp_infoheader IH;
+	pixel **img;
+
+	FILE *input=fopen("input.txt","rt");
+	char line[strlength], copie[strlength];
+	fgets(line,sizeof(line),input);			// Reads image name.					
+	strcpy(copie,line);						// Adds ./input/images at beginning
+	strcpy(line,"./input/images/");			//	of string.
+	strcat(line,copie);
+	strcpy(line+strlen(line)-1,"\0");		// Erases last \n (from fgets).
+
+	FILE *imagine=fopen(line,"rb");			
+	fread(&FH.fileMarker1,sizeof(char),1,imagine);	//FileHeader reading.
+	fread(&FH.fileMarker2,sizeof(char),1,imagine);
+	fread(&FH.bfSize,sizeof(int),1,imagine);
+	fread(&FH.unused1,sizeof(short),1,imagine);
+	fread(&FH.unused2,sizeof(short),1,imagine);
+	fread(&FH.imageDataOffset,sizeof(int),1,imagine);
+
+	fread(&IH.biSize,sizeof(int),1,imagine);		//InfoHeader reading.
+	fread(&IH.width,sizeof(int),1,imagine);
+	fread(&IH.height,sizeof(int),1,imagine);
+	fread(&IH.planes,sizeof(short),1,imagine);
+	fread(&IH.bitPix,sizeof(short),1,imagine);
+	fread(&IH.biCompression,sizeof(int),1,imagine);
+	fread(&IH.biSizeImage,sizeof(int),1,imagine);
+	fread(&IH.biXPelsPerMeter,sizeof(int),1,imagine);
+	fread(&IH.biYPelsPerMeter,sizeof(int),1,imagine);
+	fread(&IH.biClrUsed,sizeof(int),1,imagine);
+	fread(&IH.biClrImportant,sizeof(int),1,imagine);
+
+	int padding;									// Calculate padding.
+	padding=(4-(IH.width*3)%4)%4;
+
+	img=malloc(IH.height*sizeof(pixel *));			// Memory allocation
+	for(i=0;i<IH.height;i++)
+		img[i]=malloc(IH.width*sizeof(pixel)+padding);
 	
 	for(i=0;i<IH.height;i++)
-	{
-		for(j=0;j<IH.width;j++)
-		{	
-			fwrite(&img[i][j].b,sizeof(char),1,output);
-			fwrite(&img[i][j].g,sizeof(char),1,output);
-			fwrite(&img[i][j].r,sizeof(char),1,output);
-		}
-		
-		if(padding==3)
-		{fwrite(&zero,sizeof(char),1,output);
-		fwrite(&zero,sizeof(char),1,output);
-		fwrite(&zero,sizeof(char),1,output);
-		}
-		if(padding==1)
 		{
-			fwrite(&zero,sizeof(char),1,output);
-		}	
-	}
-	
-			
-		
-	fclose(output);	
+		for(j=0;j<IH.width;j++)
+		{
+			fread(&img[i][j].b,sizeof(char),1,imagine);		// Read every pixel
+			fread(&img[i][j].g,sizeof(char),1,imagine);
+			fread(&img[i][j].r,sizeof(char),1,imagine);
+		}
+		if(i!=IH.height-1)
+			fseek(imagine,padding,SEEK_CUR);				//Jump over padding
+		}
 ///////////////////BLACK&WHITE////////////
 
-	char bw[100], *p;
+	char bw[strlength], *p;
 	p=strtok(copie,".");
 	strcpy(bw,p);
-	strcat(bw,"_black_white.bmp");
-	FILE *output1=fopen(bw,"wb");
-	fwrite(&FH.fileMarker1,sizeof(char),1,output1);
-	fwrite(&FH.fileMarker2,sizeof(char),1,output1);
-	fwrite(&FH.bfSize,sizeof(int),1,output1);
-	fwrite(&FH.unused1,sizeof(short),1,output1);
-	fwrite(&FH.unused2,sizeof(short),1,output1);
-	fwrite(&FH.imageDataOffset,sizeof(int),1,output1);
+	strcat(bw,"_black_white.bmp");				// Create image name string
 
-	fwrite(&IH.biSize,sizeof(int),1,output1);
-	fwrite(&IH.width,sizeof(int),1,output1);
-	fwrite(&IH.height,sizeof(int),1,output1);
-	fwrite(&IH.planes,sizeof(short),1,output1);
-	fwrite(&IH.bitPix,sizeof(short),1,output1);
-	fwrite(&IH.biCompression,sizeof(int),1,output1);
-	fwrite(&IH.biSizeImage,sizeof(int),1,output1);
-	fwrite(&IH.biXPelsPerMeter,sizeof(int),1,output1);
-	fwrite(&IH.biYPelsPerMeter,sizeof(int),1,output1);
-	fwrite(&IH.biClrUsed,sizeof(int),1,output1);
-	fwrite(&IH.biClrImportant,sizeof(int),1,output1);
+	FILE *output1=fopen(bw,"wb");				// Open output with previously 
+	header_write(output1,FH,IH);				//	created string.
 
-	fseek(output1,FH.imageDataOffset,SEEK_SET);
 	int medie;
 	for(i=0;i<IH.height;i++)
 	{
 		for(j=0;j<IH.width;j++)
 		{	
-			medie=(img[i][j].b+img[i][j].g+img[i][j].r)/3;
-			fwrite(&medie,sizeof(char),1,output1);
-			fwrite(&medie,sizeof(char),1,output1);
-			fwrite(&medie,sizeof(char),1,output1);
+			medie=(img[i][j].b+img[i][j].g+img[i][j].r)/3;	//Calculate average.
+			write_pixel(output1,medie,medie,medie);
 		}
 		
-		if(padding==3)
-		{
-		fwrite(&zero,sizeof(char),1,output1);
-		fwrite(&zero,sizeof(char),1,output1);
-		fwrite(&zero,sizeof(char),1,output1);
-		}
-		if(padding==1)
-		{
+		for(k=0;k<padding;k++)
 			fwrite(&zero,sizeof(char),1,output1);
-		}
-		
 	}
-	
 	
 	fclose(output1);
 
 ///////NOCROP///////////pana aici 10h au trecut////////
 
-	char nc[100];
-	int format;//format=0 inseamna ca img e portrait
+	char nc[strlength];
+	int format;			//if format==0, image is portrait
 	int before,after;
 
 	strcpy(nc,p);
 	strcat(nc,"_nocrop.bmp");
 	FILE *output2=fopen(nc,"wb");
+
 	if(IH.height>IH.width)
 		format=0;
 	else
@@ -190,7 +153,8 @@ int main()
 	fwrite(&IH.biYPelsPerMeter,sizeof(int),1,output2);
 	fwrite(&IH.biClrUsed,sizeof(int),1,output2);
 	fwrite(&IH.biClrImportant,sizeof(int),1,output2);
-	int padding1;
+
+	int padding1;			//calculate before/after lines and new padding
 	if(format==0)
 	{
 		before=(IH.height-IH.width)/2+(IH.height-IH.width)%2;
@@ -201,7 +165,7 @@ int main()
 	{
 		before=(IH.width-IH.height)/2+(IH.width-IH.height)%2;
 		after=(IH.width-IH.height)/2;
-		padding1=(4-(IH.width*3)%4)%4;
+		padding1=padding;
 	}
 
 	if(format)
@@ -209,67 +173,28 @@ int main()
 		for(i=0;i<before;i++)
 		{
 			for(j=0;j<IH.width;j++)
-			{	
-				fwrite(&full,sizeof(char),1,output2);
-				fwrite(&full,sizeof(char),1,output2);
-				fwrite(&full,sizeof(char),1,output2);
-			}
-			
-			{	if(padding1==3)
-				{
-					fwrite(&zero,sizeof(char),1,output2);
-					fwrite(&zero,sizeof(char),1,output2);
-					fwrite(&zero,sizeof(char),1,output2);
-				}
-				if(padding1==1)
-				{
-					fwrite(&zero,sizeof(char),1,output2);
-				}
-			}
+				write_pixel(output2,full,full,full);
+		
+			for(k=0;k<padding;k++)
+			fwrite(&zero,sizeof(char),1,output2);
 		}
 
 		for(i=0;i<IH.height;i++)
 		{
 			for(j=0;j<IH.width;j++)
-			{	
-				fwrite(&img[i][j].b,sizeof(char),1,output2);
-				fwrite(&img[i][j].g,sizeof(char),1,output2);
-				fwrite(&img[i][j].r,sizeof(char),1,output2);
-			}
+				write_pixel(output2,img[i][j].b,img[i][j].g,img[i][j].r);
 			
-			
-			{	if(padding1==3)
-				{fwrite(&zero,sizeof(char),1,output2);
-				fwrite(&zero,sizeof(char),1,output2);
-				fwrite(&zero,sizeof(char),1,output2);
-				}
-				if(padding1==1)
-				{
-					fwrite(&zero,sizeof(char),1,output2);
-				}
-			}
+			for(k=0;k<padding;k++)
+			fwrite(&zero,sizeof(char),1,output2);
 		}
 
 		for(i=0;i<after;i++)
 		{
-			for(j=0;j<IH.width;j++)
-			{	
-				fwrite(&full,sizeof(char),1,output2);
-				fwrite(&full,sizeof(char),1,output2);
-				fwrite(&full,sizeof(char),1,output2);
-			}
-			
-			{	if(padding1==3)
-				{
-					fwrite(&zero,sizeof(char),1,output2);
-					fwrite(&zero,sizeof(char),1,output2);
-					fwrite(&zero,sizeof(char),1,output2);
-				}
-				if(padding1==1)
-				{
-					fwrite(&zero,sizeof(char),1,output2);
-				}
-			}
+			for(j=0;j<IH.width;j++)	
+				write_pixel(output2,full,full,full);
+
+			for(k=0;k<padding1;k++)
+			fwrite(&zero,sizeof(char),1,output2);
 		}
 
 	}
@@ -278,39 +203,22 @@ int main()
 		for(i=0;i<IH.height;i++)
 		{
 			for(j=0;j<before;j++)
-			{
-				fwrite(&full,sizeof(char),1,output2);
-				fwrite(&full,sizeof(char),1,output2);
-				fwrite(&full,sizeof(char),1,output2);
-			}
+			write_pixel(output2,full,full,full);
+
 			for(j=0;j<IH.width;j++)
-			{
-				fwrite(&img[i][j].b,sizeof(char),1,output2);
-				fwrite(&img[i][j].g,sizeof(char),1,output2);
-				fwrite(&img[i][j].r,sizeof(char),1,output2);
-			}
+			write_pixel(output2,img[i][j].b,img[i][j].g,img[i][j].r);
+
 			for(j=0;j<after;j++)
-			{
-				fwrite(&full,sizeof(char),1,output2);
-				fwrite(&full,sizeof(char),1,output2);
-				fwrite(&full,sizeof(char),1,output2);
-			}
-			if(padding1==3)
-				{
-					fwrite(&zero,sizeof(char),1,output2);
-					fwrite(&zero,sizeof(char),1,output2);
-					fwrite(&zero,sizeof(char),1,output2);
-				}
-			if(padding1==1)
-			{
-				fwrite(&zero,sizeof(char),1,output2);
-			}
+			write_pixel(output2,full,full,full);
+
+			for(k=0;k<padding1;k++)
+			fwrite(&zero,sizeof(char),1,output2);
 
 		}
 	}
 	fclose(output2);
 ///////CONVOLAYER///////////surprisingly small time on nocrop////////
-	char cl[100],filt[100];
+	char cl[strlength],filt[strlength];
 	int n, **filter;
 	fgets(filt,sizeof(filt),input);
 	strcpy(filt+strlen(filt)-1,"\0");
@@ -323,7 +231,6 @@ int main()
 		for(j=0;j<n;j++)
 			fscanf(filter_in,"%d",&filter[i][j]);
 
-	//rasturnare matrice
 	int aux;
 	for(i=0;i<n/2;i++)
 		for(j=0;j<n;j++)
@@ -336,26 +243,10 @@ int main()
 	strcpy(cl,p);
 	strcat(cl,"_filter.bmp");
 	FILE *output3=fopen(cl,"wb");
-	fwrite(&FH.fileMarker1,sizeof(char),1,output3);
-	fwrite(&FH.fileMarker2,sizeof(char),1,output3);
-	fwrite(&FH.bfSize,sizeof(int),1,output3);
-	fwrite(&FH.unused1,sizeof(short),1,output3);
-	fwrite(&FH.unused2,sizeof(short),1,output3);
-	fwrite(&FH.imageDataOffset,sizeof(int),1,output3);
 
-	fwrite(&IH.biSize,sizeof(int),1,output3);
-	fwrite(&IH.width,sizeof(int),1,output3);
-	fwrite(&IH.height,sizeof(int),1,output3);
-	fwrite(&IH.planes,sizeof(short),1,output3);
-	fwrite(&IH.bitPix,sizeof(short),1,output3);
-	fwrite(&IH.biCompression,sizeof(int),1,output3);
-	fwrite(&IH.biSizeImage,sizeof(int),1,output3);
-	fwrite(&IH.biXPelsPerMeter,sizeof(int),1,output3);
-	fwrite(&IH.biYPelsPerMeter,sizeof(int),1,output3);
-	fwrite(&IH.biClrUsed,sizeof(int),1,output3);
-	fwrite(&IH.biClrImportant,sizeof(int),1,output3);
+	header_write(output3, FH,IH);
 
-	int b,g,r,k,l,b1,g1,r1;
+	int b,g,r,b1,g1,r1;
 
 	for(i=0;i<IH.height;i++)
 	{
@@ -394,25 +285,14 @@ int main()
 				g=0;
 			if(r<0)
 				r=0;
-			fwrite(&b,sizeof(char),1,output3);
-			fwrite(&g,sizeof(char),1,output3);
-			fwrite(&r,sizeof(char),1,output3);
+			write_pixel(output3,b,g,r);
 		}
-		
-		if(padding==3)
-		{
+		for(k=0;k<padding1;k++)
 			fwrite(&zero,sizeof(char),1,output3);
-			fwrite(&zero,sizeof(char),1,output3);
-			fwrite(&zero,sizeof(char),1,output3);
-		}
-		if(padding==1)
-		{
-			fwrite(&zero,sizeof(char),1,output3);
-		}
 	}	
 	fclose(output3);
 //////POOLING///////////////////////////////////////////////////////////////
-	char pl[100],type;
+	char pl[strlength],type;
 	int size;
 	strcpy(pl,p);
 	strcat(pl,"_pooling.bmp");
@@ -422,24 +302,7 @@ int main()
 	FILE *pooling=fopen(filt,"rt");
 	fscanf(pooling,"%c %d",&type,&size);
 
-	fwrite(&FH.fileMarker1,sizeof(char),1,output4);
-	fwrite(&FH.fileMarker2,sizeof(char),1,output4);
-	fwrite(&FH.bfSize,sizeof(int),1,output4);
-	fwrite(&FH.unused1,sizeof(short),1,output4);
-	fwrite(&FH.unused2,sizeof(short),1,output4);
-	fwrite(&FH.imageDataOffset,sizeof(int),1,output4);
-
-	fwrite(&IH.biSize,sizeof(int),1,output4);
-	fwrite(&IH.width,sizeof(int),1,output4);
-	fwrite(&IH.height,sizeof(int),1,output4);
-	fwrite(&IH.planes,sizeof(short),1,output4);
-	fwrite(&IH.bitPix,sizeof(short),1,output4);
-	fwrite(&IH.biCompression,sizeof(int),1,output4);
-	fwrite(&IH.biSizeImage,sizeof(int),1,output4);
-	fwrite(&IH.biXPelsPerMeter,sizeof(int),1,output4);
-	fwrite(&IH.biYPelsPerMeter,sizeof(int),1,output4);
-	fwrite(&IH.biClrUsed,sizeof(int),1,output4);
-	fwrite(&IH.biClrImportant,sizeof(int),1,output4);
+	header_write(output4,FH,IH);
 
 	int minb, ming, minr, maxb, maxg, maxr;
 
@@ -479,33 +342,17 @@ int main()
 						minr=r1;
 				}
 			if(type=='M')
-			{
-				fwrite(&maxb,sizeof(char),1,output4);
-				fwrite(&maxg,sizeof(char),1,output4);
-				fwrite(&maxr,sizeof(char),1,output4);
-			}
+				write_pixel(output4,maxb,maxg,maxr);
 			else
-			{
-				fwrite(&minb,sizeof(char),1,output4);
-				fwrite(&ming,sizeof(char),1,output4);
-				fwrite(&minr,sizeof(char),1,output4);
-			}
+				write_pixel(output4,minb,ming,minr);
 		}
 		
-		if(padding==3)
-		{
+		for(k=0;k<padding1;k++)
 			fwrite(&zero,sizeof(char),1,output4);
-			fwrite(&zero,sizeof(char),1,output4);
-			fwrite(&zero,sizeof(char),1,output4);
-		}
-		if(padding==1)
-		{
-			fwrite(&zero,sizeof(char),1,output4);
-		}
 	}
 	fclose(output4);
 /////////////CLUSTERING/////////////////////////////////////////////////////////
-
+//NOT_WORKING//
 	int **zone,zonenr=0; //matricea ce contine zonele pixelilor si contorul
 	int zones=256; //se aloca spatiu pentru cate 256 de culori de zona
 	Zone_Color *zc; //vector de pixeli cu culoarea fiecarei zone
@@ -519,7 +366,7 @@ int main()
 			zone[i][j]=0;
 	zc=malloc(zones*sizeof(Zone_Color));
 
-	char clus[100];
+	char clus[strlength];
 	strcpy(clus,p);
 	strcat(clus,"_clustered.bmp");
 	FILE *output5=fopen(clus,"wb");
@@ -589,55 +436,31 @@ int main()
 
 			}
 
-	fwrite(&FH.fileMarker1,sizeof(char),1,output5);
-	fwrite(&FH.fileMarker2,sizeof(char),1,output5);
-	fwrite(&FH.bfSize,sizeof(int),1,output5);
-	fwrite(&FH.unused1,sizeof(short),1,output5);
-	fwrite(&FH.unused2,sizeof(short),1,output5);
-	fwrite(&FH.imageDataOffset,sizeof(int),1,output5);
-
-	fwrite(&IH.biSize,sizeof(int),1,output5);
-	fwrite(&IH.width,sizeof(int),1,output5);
-	fwrite(&IH.height,sizeof(int),1,output5);
-	fwrite(&IH.planes,sizeof(short),1,output5);
-	fwrite(&IH.bitPix,sizeof(short),1,output5);
-	fwrite(&IH.biCompression,sizeof(int),1,output5);
-	fwrite(&IH.biSizeImage,sizeof(int),1,output5);
-	fwrite(&IH.biXPelsPerMeter,sizeof(int),1,output5);
-	fwrite(&IH.biYPelsPerMeter,sizeof(int),1,output5);
-	fwrite(&IH.biClrUsed,sizeof(int),1,output5);
-	fwrite(&IH.biClrImportant,sizeof(int),1,output5);
-
+	header_write(output5,FH,IH);
 	for(i=0;i<IH.height;i++)
 	{
 		for(j=0;j<IH.width;j++)
-		{	
-			fwrite(&zc[zone[i][j]].b,sizeof(char),1,output5);
-			fwrite(&zc[zone[i][j]].g,sizeof(char),1,output5);
-			fwrite(&zc[zone[i][j]].r,sizeof(char),1,output5);
-		}
+			write_pixel(output5 , zc[zone[i][j]].b , zc[zone[i][j]].g,
+				zc[zone[i][j]].r);
 		
-		if(padding==3)
-		{fwrite(&zero,sizeof(char),1,output5);
-		fwrite(&zero,sizeof(char),1,output5);
-		fwrite(&zero,sizeof(char),1,output5);
-		}
-		if(padding==1)
-		{
-			fwrite(&zero,sizeof(char),1,output5);
-		}	
+		for(k=0;k<padding1;k++)
+			fwrite(&zero,sizeof(char),1,output5);	
 	}
 	fclose(output5);	
 
-
-
-
-
-
-	for(i=0;i<IH.height;i++)			//eliberare memorie
+	for(i=0;i<IH.height;i++)			//Memory freeing.
 		free(img[i]);
 	free(img);
+
 	for(i=0;i<IH.height;i++)		
 		free(zone[i]);
 	free(zone);
-	return 0;}
+
+	for(i=0;i<n;i++)
+		free(filter[i]);
+	free(filter);
+
+	free(zc);
+
+	return 0;
+}
