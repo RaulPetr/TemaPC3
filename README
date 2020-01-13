@@ -42,5 +42,6 @@ pixel.
 Task 5:
 	Nu functioneaza, algoritmul nu e bun mai mult ca sigur.
 	
+	La final se elibereaza memoria alocata dinamic.
 
 

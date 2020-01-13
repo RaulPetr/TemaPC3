@@ -1,5 +1,6 @@
-build:
+build: bmp_header.h
 	gcc -o bmp tema3.c
-run:
+run: bmp
 	./bmp
-clean:
+clean: bmp
+	rm bmp

@@ -88,10 +88,11 @@ int main()
 		if(i!=IH.height-1)
 			fseek(imagine,padding,SEEK_CUR);				//Jump over padding
 		}
-///////////////////BLACK&WHITE////////////
+///////////////////BLACK&WHITE////////////////////////////////////////
 
-	char bw[strlength], *p;
+	char *bw, *p;
 	p=strtok(copie,".");
+	bw=malloc(strlength);
 	strcpy(bw,p);
 	strcat(bw,"_black_white.bmp");				// Create image name string
 
@@ -112,13 +113,15 @@ int main()
 	}
 	
 	fclose(output1);
+	free(bw);
 
-///////NOCROP///////////pana aici 10h au trecut////////
+/////////////////////NOCROP///////////////////////////////////////////
 
-	char nc[strlength];
+	char *nc;
 	int format;			//if format==0, image is portrait
 	int before,after;
 
+	nc=malloc(strlength);
 	strcpy(nc,p);
 	strcat(nc,"_nocrop.bmp");
 	FILE *output2=fopen(nc,"wb");
@@ -217,9 +220,13 @@ int main()
 		}
 	}
 	fclose(output2);
-///////CONVOLAYER///////////surprisingly small time on nocrop////////
-	char cl[strlength],filt[strlength];
-	int n, **filter;
+	free(nc);
+
+/////////////////////CONVOLAYER///////////////////////////////////////
+
+	char *cl, filt[strlength]; //filt[] being dynamically allocated makes the
+	int n, **filter;			//	program stop working
+	cl=malloc(strlength);
 	fgets(filt,sizeof(filt),input);
 	strcpy(filt+strlen(filt)-1,"\0");
 	FILE *filter_in=fopen(filt,"rt");
@@ -291,9 +298,13 @@ int main()
 			fwrite(&zero,sizeof(char),1,output3);
 	}	
 	fclose(output3);
-//////POOLING///////////////////////////////////////////////////////////////
-	char pl[strlength],type;
+	free(cl);
+
+///////////////////POOLING////////////////////////////////////////////
+	
+	char *pl,type;
 	int size;
+	pl=malloc(strlength);
 	strcpy(pl,p);
 	strcat(pl,"_pooling.bmp");
 	FILE *output4=fopen(pl,"wb");
@@ -351,14 +362,17 @@ int main()
 			fwrite(&zero,sizeof(char),1,output4);
 	}
 	fclose(output4);
-/////////////CLUSTERING/////////////////////////////////////////////////////////
-//NOT_WORKING//
-	int **zone,zonenr=0; //matricea ce contine zonele pixelilor si contorul
-	int zones=256; //se aloca spatiu pentru cate 256 de culori de zona
-	Zone_Color *zc; //vector de pixeli cu culoarea fiecarei zone
+	free(pl);
+
+//////////////////////////CLUSTERING//////////////////////////////////
+//NOT_WORKING//BAD_ALGORITHM
+	
+	int **zone,zonenr=0; //pixel zones and counter for zones
+	int zones=256; //allocate 256 zones at a time
+	Zone_Color *zc; //pixel vector with zone colour
 	int thr; //thr=threshhold
 	int ok,count;
-	zone=malloc(IH.height*sizeof(int *));			//alocare memorie
+	zone=malloc(IH.height*sizeof(int *));			//memory allocation
 	for(i=0;i<IH.height;i++)
 		zone[i]=malloc(IH.width*sizeof(zone));
 	for(i=0;i<IH.height;i++)
@@ -366,7 +380,8 @@ int main()
 			zone[i][j]=0;
 	zc=malloc(zones*sizeof(Zone_Color));
 
-	char clus[strlength];
+	char *clus;
+	clus=malloc(strlength);
 	strcpy(clus,p);
 	strcat(clus,"_clustered.bmp");
 	FILE *output5=fopen(clus,"wb");
@@ -402,8 +417,8 @@ int main()
 							l=j+1;
 							ok=0;
 						}
-						if(k>i||l<IH.width) //in caz ca pixelul gasit liber e la
-						// capat de rand, nu se iese din spatiul de memorie
+						if(k>i||l<IH.width) //if found pixe; is at end of row
+						// this makes sure the program stays in memory space
 						{
 							if(( abs(b1-img[k][l].b) + abs(g1-img[k][l].g)
 								+abs(r1-img[k][l].r) ) <= thr)
@@ -422,7 +437,7 @@ int main()
 				g=g/count;
 				r=r/count;
 
-				if(zonenr+3>zones)	//realocare pt. vectorul pixelilor zonelor
+				if(zonenr+3>zones)	//reallocation for pixel vector
 				{	
 					zones*=2;
 					zc=realloc(zc,zones*sizeof(Zone_Color));
